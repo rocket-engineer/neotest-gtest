@@ -67,6 +67,8 @@ local default_config = {
     end
     return true
   end,
+  launch_settings_provider = nil,
+  build_callback = nil,
 }
 
 local config = default_config
