@@ -48,10 +48,18 @@ local TREESITTER_GTEST_QUERY = vim.treesitter.query.parse(
 ]]
 )
 
+local function add_reverse_lookup(tbl)
+  local keys = vim.tbl_keys(tbl)
+  for _, key in ipairs(keys) do
+    tbl[tbl[key]] = key
+  end
+  return tbl
+end
+
 ---Extracts test positions from a source using the given query
----@param query Query The query to use
+---@param query vim.treesitter.Query The query to use
 ---@param source string The text of the source file.
----@param root LanguageTree The root of the tree
+---@param root TSNode The root of the tree
 ---@return table
 ---@return table
 local function extract_captures(
@@ -67,12 +75,16 @@ local function extract_captures(
 
   local namespaces = {}
   local tests = {}
-  pcall(vim.tbl_add_reverse_lookup, query.captures)
+  add_reverse_lookup(query.captures)
   local gettext = function(match, capture_name)
-    return vim.treesitter.get_node_text(match[query.captures[capture_name]], source)
+    local node = match[query.captures[capture_name]]
+    if node == nil then
+      error(vim.inspect({ node, match, query.captures, capture_name }))
+    end
+    return vim.treesitter.get_node_text(node, source)
   end
 
-  for _, match in query:iter_matches(root, source) do
+  for _, match in query:iter_matches(root, source, nil, nil, { all = false }) do
     local namespace_name = gettext(match, "namespace.name")
     local test_kind = gettext(match, "test.kind")
     local test_name = gettext(match, "test.name")
@@ -173,7 +185,7 @@ end
 
 local function get_file_language(file_path)
   local ft = files.detect_filetype(file_path)
-  return require("nvim-treesitter.parsers").ft_to_lang(ft)
+  return vim.treesitter.language.get_lang(ft)
 end
 
 local function parser_get_tree(lang_tree)

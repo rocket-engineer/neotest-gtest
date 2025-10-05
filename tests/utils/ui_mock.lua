@@ -28,6 +28,7 @@ function InputMock:return_value(value)
 end
 
 function InputMock:input(opts, callback)
+  assert.is_false(vim.in_fast_event())
   self._opts = opts
   callback(self._input_value)
 end
@@ -150,6 +151,7 @@ function SelectMock:assert_called_with_choices(choices)
 end
 
 function SelectMock:select(choices, opts, callback)
+  assert.is_false(vim.in_fast_event())
   self._choices = choices
   self._opts = opts
   if self._select_value == nil then
@@ -188,6 +190,7 @@ function NotificationsMock:new()
   }
   ---@diagnostic disable-next-line: duplicate-set-field
   vim.notify = function(message, level)
+    assert.is_false(vim.in_fast_event(), message)
     table.insert(obj._notifications, { message = message, level = level })
   end
   lib.notify = vim.notify
